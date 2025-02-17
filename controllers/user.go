@@ -2,7 +2,9 @@ package controllers
 
 import (
 	"encoding/json"
+	"fmt"
 	"major_league_api_example/models"
+	"slices"
 
 	beego "github.com/beego/beego/v2/server/web"
 )
@@ -10,6 +12,34 @@ import (
 // Operations about Users
 type UserController struct {
 	beego.Controller
+}
+
+// Единая структура ответа на запросы
+type Respons struct {
+	Err  bool `json:"err"`
+	Data any  `json:"data"`
+}
+
+// Проверка заголовков для всех запросов
+func (u *UserController) HandlerFunc(rules string) bool {
+	fmt.Println(u.Ctx.Request.Header["Authorization"])
+	switch rules {
+	case "GetAll", "Logout": // rules - в значении имеет название функции, которая выполняется при вызове метода
+		if u.GetSession("accessToken") == nil { // GetSession возвращает nil если нет ключа, поэтому приходится проверять
+			break
+		}
+		accessToken := u.GetSession("accessToken").(string)
+		arrayToken := u.Ctx.Request.Header["Authorization"]
+		token, _ := models.VerifyToken(accessToken)                                    // забираем данные из токена
+		fmt.Println(token, token["id"])                                                // Можем делать проверку
+		if len(arrayToken) > 0 && slices.Contains(arrayToken, "Bearer "+accessToken) { //проверка токена, тут проверка через сессию
+			return false
+		}
+	default: //все не указанные методы будут выполняться без авторизации
+		return false
+	}
+	u.Abort("401") // выдаем ошибку авторизации
+	return true
 }
 
 // @Title CreateUser
@@ -22,17 +52,18 @@ func (u *UserController) Post() {
 	var user models.User
 	json.Unmarshal(u.Ctx.Input.RequestBody, &user)
 	uid := models.AddUser(user)
-	u.Data["json"] = map[string]int64{"uid": uid}
+	u.Data["json"] = Respons{Err: false, Data: uid}
 	u.ServeJSON()
 }
 
 // @Title GetAll
 // @Description get all Users
+// @Param Authorization header string true "Insert your access token" default(Bearer <Add access token here>)
 // @Success 200 {object} models.User
 // @router / [get]
 func (u *UserController) GetAll() {
 	users := models.GetAllUsers()
-	u.Data["json"] = users
+	u.Data["json"] = Respons{Err: false, Data: users}
 	u.ServeJSON()
 }
 
@@ -47,9 +78,9 @@ func (u *UserController) Get() {
 	if err == nil {
 		user, err := models.GetUser(uid)
 		if err != nil {
-			u.Data["json"] = err.Error()
+			u.Data["json"] = Respons{Err: true, Data: err.Error()}
 		} else {
-			u.Data["json"] = user
+			u.Data["json"] = Respons{Err: false, Data: user}
 		}
 	}
 	u.ServeJSON()
@@ -66,9 +97,9 @@ func (u *UserController) Put() {
 	json.Unmarshal(u.Ctx.Input.RequestBody, &user)
 	err := models.UpdateUser(&user)
 	if err != nil {
-		u.Data["json"] = err.Error()
+		u.Data["json"] = Respons{Err: true, Data: err.Error()}
 	} else {
-		u.Data["json"] = user
+		u.Data["json"] = Respons{Err: false, Data: user}
 	}
 	u.ServeJSON()
 }
@@ -84,9 +115,9 @@ func (u *UserController) Delete() {
 	if err == nil {
 		del := models.DeleteUser(uid)
 		if del {
-			u.Data["json"] = "Пользователь удален"
+			u.Data["json"] = Respons{Err: false, Data: "Пользователь удален"}
 		} else {
-			u.Data["json"] = "Пользователь не найден"
+			u.Data["json"] = Respons{Err: true, Data: "Пользователь не найден"}
 		}
 	}
 	u.ServeJSON()
@@ -94,27 +125,32 @@ func (u *UserController) Delete() {
 
 // @Title Login
 // @Description Logs user into the system
-// @Param	username		query 	string	true		"The username for login"
-// @Param	password		query 	string	true		"The password for login"
+// @Param	body		body 	models.User	true		"body for user content"
 // @Success 200 {string} login success
 // @Failure 403 user not exist
-// @router /login [get]
+// @router /login [post]
 func (u *UserController) Login() {
-	username := u.GetString("username")
-	password := u.GetString("password")
-	if models.Login(username, password) {
-		u.Data["json"] = "логин подтвержден"
-	} else {
-		u.Data["json"] = "Пользователь не найден"
-	}
+	var user models.User
+	json.Unmarshal(u.Ctx.Input.RequestBody, &user)
+	token := models.Login(user)
+	u.Data["json"] = Respons{Err: false, Data: token}
+	// установка значения сессии
+	u.SetSession("accessToken", token)
 	u.ServeJSON()
 }
 
 // @Title logout
 // @Description Logs out current logged in user session
+// @Param Authorization header string true "Insert your access token" default(Bearer <Add access token here>)
 // @Success 200 {string} logout success
 // @router /logout [get]
 func (u *UserController) Logout() {
-	u.Data["json"] = "logout success"
+	// получение значения сессии
+	//u.GetSession("accessToken")
+	// удаление значения сессии
+	// u.DelSession("accessToken")
+	// уничтожение сессии
+	u.DestroySession()
+	u.Data["json"] = Respons{Err: false, Data: "Вышли из сессии"}
 	u.ServeJSON()
 }

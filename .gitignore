@@ -1,3 +1,6 @@
 swagger.zip
 /swagger
 api.exe
+major_league_api_example.exe
+major_league_api_example.exe~
+routers/commentsRouter.go

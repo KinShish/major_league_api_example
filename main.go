@@ -6,6 +6,7 @@ import (
 	"github.com/beego/beego/v2/client/orm"
 	beego "github.com/beego/beego/v2/server/web"
 	"github.com/beego/beego/v2/server/web/filter/cors"
+	_ "github.com/beego/beego/v2/server/web/session/postgres"
 	_ "github.com/lib/pq"
 )
 

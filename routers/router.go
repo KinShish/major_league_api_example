@@ -22,4 +22,6 @@ func init() {
 		),
 	)
 	beego.AddNamespace(ns)
+	beego.Router("/ws", &controllers.WebSocketController{}) ///?:uname([0-9]+)
+	beego.Router("/chat", &controllers.WebSocketController{}, "get:ViewChat")
 }

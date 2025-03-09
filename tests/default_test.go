@@ -8,31 +8,30 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/beego/beego/v2/core/logs"
+	"github.com/beego/beego/v2/client/orm"
 	beego "github.com/beego/beego/v2/server/web"
-	. "github.com/smartystreets/goconvey/convey"
+
+	// нужно добавить сессии если используем
+	_ "github.com/beego/beego/v2/server/web/session/postgres"
+	_ "github.com/lib/pq"
+	"github.com/stretchr/testify/assert"
 )
 
 func init() {
 	_, file, _, _ := runtime.Caller(0)
+	// Обязательно нужно добавить абсолютный путь до проекта
 	apppath, _ := filepath.Abs(filepath.Dir(filepath.Join(file, ".."+string(filepath.Separator))))
 	beego.TestBeegoInit(apppath)
+	// Обязательно нужно добавить подключение к базе
+	sqlconn, _ := beego.AppConfig.String("sqlconn")
+	orm.RegisterDataBase("test", "postgres", sqlconn)
 }
 
-// TestGet is a sample to run an endpoint test
-func TestGet(t *testing.T) {
-	r, _ := http.NewRequest("GET", "/v1/object", nil)
+// TestGetUser Провекра гет запроса
+func TestGetUser(t *testing.T) {
+	r, _ := http.NewRequest("GET", "/v1/user/2", nil)
 	w := httptest.NewRecorder()
 	beego.BeeApp.Handlers.ServeHTTP(w, r)
-
-	logs.Info("testing", "TestGet", "Code[%d]\n%s", w.Code, w.Body.String())
-
-	Convey("Subject: Test Station Endpoint\n", t, func() {
-		Convey("Status Code Should Be 200", func() {
-			So(w.Code, ShouldEqual, 200)
-		})
-		Convey("The Result Should Not Be Empty", func() {
-			So(w.Body.Len(), ShouldBeGreaterThan, 0)
-		})
-	})
+	assert.Equal(t, 200, w.Code)
+	assert.Equal(t, "{\n  \"err\": false,\n  \"data\": {\n    \"Id\": 2,\n    \"Username\": \"Евгений\",\n    \"Password\": \"12345678\"\n  }\n}", w.Body.String())
 }

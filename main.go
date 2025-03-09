@@ -2,6 +2,7 @@ package main
 
 import (
 	_ "major_league_api_example/routers"
+	"runtime"
 
 	"github.com/beego/beego/v2/client/orm"
 	beego "github.com/beego/beego/v2/server/web"
@@ -11,6 +12,7 @@ import (
 )
 
 func main() {
+	runtime.GOMAXPROCS(2)
 	//Загрузка строки подключения к БД из конфига
 	sqlconn, _ := beego.AppConfig.String("sqlconn")
 	//Подключение к БД

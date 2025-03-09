@@ -70,4 +70,22 @@ func init() {
             Filters: nil,
             Params: nil})
 
+    beego.GlobalControllerRouter["major_league_api_example/controllers:WebSocketController"] = append(beego.GlobalControllerRouter["major_league_api_example/controllers:WebSocketController"],
+        beego.ControllerComments{
+            Method: "ViewChat",
+            Router: `/chat`,
+            AllowHTTPMethods: []string{"get"},
+            MethodParams: param.Make(),
+            Filters: nil,
+            Params: nil})
+
+    beego.GlobalControllerRouter["major_league_api_example/controllers:WebSocketController"] = append(beego.GlobalControllerRouter["major_league_api_example/controllers:WebSocketController"],
+        beego.ControllerComments{
+            Method: "Get",
+            Router: `/ws`,
+            AllowHTTPMethods: []string{"get"},
+            MethodParams: param.Make(),
+            Filters: nil,
+            Params: nil})
+
 }
